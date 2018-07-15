@@ -75,11 +75,11 @@ class ExampleReader(object):
         for idx, label_of_digit in enumerate(label_of_digits):
             digits[idx] = int(label_of_digit if label_of_digit != 10 else 0)    # label 10 is essentially digit zero
 
-        attrs_left, attrs_top, attrs_width, attrs_height = map(lambda x: [int(i) for i in x], [attrs['left'], attrs['top'], attrs['width'], attrs['height']])
+        attrs_left, attrs_top, attrs_width, attrs_height = [[int(i) for i in x] for x in [attrs['left'], attrs['top'], attrs['width'], attrs['height']]]
         min_left, min_top, max_right, max_bottom = (min(attrs_left),
                                                     min(attrs_top),
-                                                    max(map(lambda x, y: x + y, attrs_left, attrs_width)),
-                                                    max(map(lambda x, y: x + y, attrs_top, attrs_height)))
+                                                    max(list(map(lambda x, y: x + y, attrs_left, attrs_width))),
+                                                    max(list(map(lambda x, y: x + y, attrs_top, attrs_height))))
         center_x, center_y, max_side = ((min_left + max_right) / 2.0,
                                         (min_top + max_bottom) / 2.0,
                                         max(max_right - min_left, max_bottom - min_top))
@@ -109,12 +109,12 @@ def convert_to_tfrecords(path_to_dataset_dir_and_digit_struct_mat_file_tuples,
     for path_to_dataset_dir, path_to_digit_struct_mat_file in path_to_dataset_dir_and_digit_struct_mat_file_tuples:
         path_to_image_files = tf.gfile.Glob(os.path.join(path_to_dataset_dir, '*.png'))
         total_files = len(path_to_image_files)
-        print '%d files found in %s' % (total_files, path_to_dataset_dir)
+        print(('%d files found in %s' % (total_files, path_to_dataset_dir)))
 
         with h5py.File(path_to_digit_struct_mat_file, 'r') as digit_struct_mat_file:
             example_reader = ExampleReader(path_to_image_files)
             for index, path_to_image_file in enumerate(path_to_image_files):
-                print '(%d/%d) processing %s' % (index + 1, total_files, path_to_image_file)
+                print(('(%d/%d) processing %s' % (index + 1, total_files, path_to_image_file)))
 
                 example = example_reader.read_and_convert(digit_struct_mat_file)
                 if example is None:
@@ -132,7 +132,7 @@ def convert_to_tfrecords(path_to_dataset_dir_and_digit_struct_mat_file_tuples,
 
 def create_tfrecords_meta_file(num_train_examples, num_val_examples, num_test_examples,
                                path_to_tfrecords_meta_file):
-    print 'Saving meta file to %s...' % path_to_tfrecords_meta_file
+    print(('Saving meta file to %s...' % path_to_tfrecords_meta_file))
     meta = Meta()
     meta.num_train_examples = num_train_examples
     meta.num_val_examples = num_val_examples
@@ -156,12 +156,12 @@ def main(_):
     for path_to_file in [path_to_train_tfrecords_file, path_to_val_tfrecords_file, path_to_test_tfrecords_file]:
         assert not os.path.exists(path_to_file), 'The file %s already exists' % path_to_file
 
-    print 'Processing training and validation data...'
+    print('Processing training and validation data...')
     [num_train_examples, num_val_examples] = convert_to_tfrecords([(path_to_train_dir, path_to_train_digit_struct_mat_file),
                                                                    (path_to_extra_dir, path_to_extra_digit_struct_mat_file)],
                                                                   [path_to_train_tfrecords_file, path_to_val_tfrecords_file],
                                                                   lambda paths: 0 if random.random() > 0.1 else 1)
-    print 'Processing test data...'
+    print('Processing test data...')
     [num_test_examples] = convert_to_tfrecords([(path_to_test_dir, path_to_test_digit_struct_mat_file)],
                                                [path_to_test_tfrecords_file],
                                                lambda paths: 0)
@@ -169,7 +169,7 @@ def main(_):
     create_tfrecords_meta_file(num_train_examples, num_val_examples, num_test_examples,
                                path_to_tfrecords_meta_file)
 
-    print 'Done'
+    print('Done')
 
 
 if __name__ == '__main__':
