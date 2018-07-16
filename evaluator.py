@@ -1,6 +1,6 @@
 import tensorflow as tf
 from donkey import Donkey
-from model import Model
+from model import Model, Reconstructor
 
 
 class Evaluator(object):
@@ -9,7 +9,7 @@ class Evaluator(object):
 
     def evaluate(self, path_to_checkpoint, path_to_tfrecords_file, num_examples, global_step):
         batch_size = 128
-        num_batches = num_examples / batch_size
+        num_batches = num_examples // batch_size
         needs_include_length = False
 
         with tf.Graph().as_default():
@@ -17,7 +17,11 @@ class Evaluator(object):
                                                                          num_examples=num_examples,
                                                                          batch_size=batch_size,
                                                                          shuffled=False)
-            length_logits, digits_logits = Model.inference(image_batch, drop_rate=0.0)
+            length_logits, digits_logits, hidden_out = Model.inference(image_batch, drop_rate=0.0)
+            recovered = Reconstructor.recover_hidden(hidden_out)
+            recovered = tf.image.resize_images(recovered, size=(54, 54))
+            recovered_ssim = tf.reduce_mean(tf.image.ssim(tf.image.rgb_to_grayscale(image_batch), tf.image.rgb_to_grayscale(recovered),max_val=255))
+            defender_loss = -recovered_ssim
             length_predictions = tf.argmax(length_logits, axis=1)
             digits_predictions = tf.argmax(digits_logits, axis=2)
 
@@ -37,6 +41,9 @@ class Evaluator(object):
             )
 
             tf.summary.image('image', image_batch)
+            tf.summary.image('recovered_image', recovered)
+            tf.summary.scalar('recovered_ssim', recovered_ssim)
+            tf.summary.scalar('defender_loss', defender_loss)
             tf.summary.scalar('accuracy', accuracy)
             tf.summary.histogram('variables',
                                  tf.concat([tf.reshape(var, [-1]) for var in tf.trainable_variables()], axis=0))

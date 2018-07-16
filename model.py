@@ -1,5 +1,31 @@
 import tensorflow as tf
 
+class Reconstructor(object):
+    @staticmethod
+    def recover_hidden(hidden_out):
+        with tf.variable_scope('recover_hidden'):
+            # recover from hidden 4
+            r_pool = tf.layers.Conv2DTranspose(filters=160, kernel_size=(2, 2), strides=(1, 1), padding='same')(hidden_out)
+            r_relu = tf.nn.relu(r_pool)
+            r_norm = tf.layers.batch_normalization(r_relu)
+            r_conv = tf.layers.Conv2DTranspose(filters=128, kernel_size=(5, 5), padding='same')(r_norm)
+
+            r_pool = tf.layers.Conv2DTranspose(filters=128, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
+            r_relu = tf.nn.relu(r_pool)
+            r_norm = tf.layers.batch_normalization(r_relu)
+            r_conv = tf.layers.Conv2DTranspose(filters=64, kernel_size=(5, 5), padding='same')(r_norm)
+
+            r_pool = tf.layers.Conv2DTranspose(filters=64, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_conv)
+            r_relu = tf.nn.relu(r_pool)
+            r_norm = tf.layers.batch_normalization(r_relu)
+            r_conv = tf.layers.Conv2DTranspose(filters=48, kernel_size=(5, 5), padding='same')(r_norm)
+
+            r_pool = tf.layers.Conv2DTranspose(filters=48, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
+            r_relu = tf.nn.relu(r_pool)
+            r_norm = tf.layers.batch_normalization(r_relu)
+            r_conv = tf.layers.Conv2DTranspose(filters=3, kernel_size=(5, 5), padding='same')(r_norm)
+            return r_conv
+
 
 class Model(object):
 
@@ -104,7 +130,7 @@ class Model(object):
             digit5 = dense
 
         length_logits, digits_logits = length, tf.stack([digit1, digit2, digit3, digit4, digit5], axis=1)
-        return length_logits, digits_logits
+        return length_logits, digits_logits, hidden4
 
     @staticmethod
     def loss(length_logits, digits_logits, length_labels, digits_labels):

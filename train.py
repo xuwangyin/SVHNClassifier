@@ -4,7 +4,7 @@ import time
 import tensorflow as tf
 from meta import Meta
 from donkey import Donkey
-from model import Model
+from model import Model, Reconstructor
 from evaluator import Evaluator
 
 tf.app.flags.DEFINE_string('data_dir', './data', 'Directory to read TFRecords files')
@@ -16,6 +16,7 @@ tf.app.flags.DEFINE_float('learning_rate', 1e-2, 'Default 1e-2')
 tf.app.flags.DEFINE_integer('patience', 100, 'Default 100, set -1 to train infinitely')
 tf.app.flags.DEFINE_integer('decay_steps', 10000, 'Default 10000')
 tf.app.flags.DEFINE_float('decay_rate', 0.9, 'Default 0.9')
+tf.app.flags.DEFINE_float('recover_ssim_weight', 1.0, 'Default 1.0')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -31,17 +32,27 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
                                                                      num_examples=num_train_examples,
                                                                      batch_size=batch_size,
                                                                      shuffled=True)
-        length_logtis, digits_logits = Model.inference(image_batch, drop_rate=0.2)
-        loss = Model.loss(length_logtis, digits_logits, length_batch, digits_batch)
+        length_logtis, digits_logits, hidden_out = Model.inference(image_batch, drop_rate=0.2)
+        recovered = Reconstructor.recover_hidden(hidden_out)
+        recovered = tf.image.resize_images(recovered, size=(54, 54))
+        with tf.variable_scope('recover_ssim_loss'):
+            recovered_ssim = tf.reduce_mean(tf.image.ssim(tf.image.rgb_to_grayscale(image_batch), tf.image.rgb_to_grayscale(recovered), max_val=255))
+            defender_loss = -recovered_ssim
+        model_loss = Model.loss(length_logtis, digits_logits, length_batch, digits_batch)
+        loss = model_loss + FLAGS.recover_ssim_weight * recovered_ssim
 
         global_step = tf.Variable(0, name='global_step', trainable=False)
         learning_rate = tf.train.exponential_decay(training_options['learning_rate'], global_step=global_step,
                                                    decay_steps=training_options['decay_steps'], decay_rate=training_options['decay_rate'], staircase=True)
         optimizer = tf.train.GradientDescentOptimizer(learning_rate)
         train_op = optimizer.minimize(loss, global_step=global_step)
+        defender_op = optimizer.minimize(defender_loss, global_step=global_step)
 
         tf.summary.image('image', image_batch)
-        tf.summary.scalar('loss', loss)
+        tf.summary.image('recovered_image', recovered)
+        tf.summary.scalar('model_loss', model_loss)
+        tf.summary.scalar('recovered_ssim', recovered_ssim)
+        tf.summary.scalar('defender_loss', defender_loss)
         tf.summary.scalar('learning_rate', learning_rate)
         summary = tf.summary.merge_all()
 
@@ -67,7 +78,7 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
 
             while True:
                 start_time = time.time()
-                _, loss_val, summary_val, global_step_val, learning_rate_val = sess.run([train_op, loss, summary, global_step, learning_rate])
+                _, _, loss_val, summary_val, global_step_val, learning_rate_val = sess.run([train_op, defender_op, loss, summary, global_step, learning_rate])
                 duration += time.time() - start_time
 
                 if global_step_val % num_steps_to_show_loss == 0:
