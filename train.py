@@ -32,12 +32,13 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
                                                                      num_examples=num_train_examples,
                                                                      batch_size=batch_size,
                                                                      shuffled=True)
-        length_logtis, digits_logits, hidden_out = Model.inference(image_batch, drop_rate=0.2)
-        recovered = Reconstructor.recover_hidden(hidden_out)
-        recovered = tf.image.resize_images(recovered, size=(54, 54))
-        with tf.variable_scope('recover_ssim_loss'):
-            recovered_ssim = tf.reduce_mean(tf.image.ssim(tf.image.rgb_to_grayscale(image_batch), tf.image.rgb_to_grayscale(recovered), max_val=255))
-            defender_loss = -recovered_ssim
+        with tf.variable_scope('model'):
+            length_logtis, digits_logits, hidden_out = Model.inference(image_batch, drop_rate=0.2)
+        with tf.variable_scope('defender'):
+            recovered = Reconstructor.recover_hidden(hidden_out)
+            recovered = tf.image.resize_images(recovered, size=(54, 54))
+        recovered_ssim = tf.reduce_mean(tf.image.ssim(tf.image.rgb_to_grayscale(image_batch), tf.image.rgb_to_grayscale(recovered), max_val=2))
+        defender_loss = -recovered_ssim
         model_loss = Model.loss(length_logtis, digits_logits, length_batch, digits_batch)
         loss = model_loss + FLAGS.recover_ssim_weight * recovered_ssim
 
@@ -45,8 +46,11 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
         learning_rate = tf.train.exponential_decay(training_options['learning_rate'], global_step=global_step,
                                                    decay_steps=training_options['decay_steps'], decay_rate=training_options['decay_rate'], staircase=True)
         optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-        train_op = optimizer.minimize(loss, global_step=global_step)
-        defender_op = optimizer.minimize(defender_loss, global_step=global_step)
+        train_op = optimizer.minimize(loss, var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope='model'), global_step=global_step)
+        defender_op = optimizer.minimize(defender_loss, var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope='defender'), global_step=global_step)
+
+        # print(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope='model'))
+        # print(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope='defender'))
 
         tf.summary.image('image', image_batch)
         tf.summary.image('recovered_image', recovered)
@@ -65,11 +69,13 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
             threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
             saver = tf.train.Saver()
-            if path_to_restore_checkpoint_file is not None:
-                assert tf.train.checkpoint_exists(path_to_restore_checkpoint_file), \
-                    '%s not found' % path_to_restore_checkpoint_file
-                saver.restore(sess, path_to_restore_checkpoint_file)
-                print('Model restored from file: %s' % path_to_restore_checkpoint_file)
+            model_saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope='model'))
+            defender_saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope='defender'))
+            # if path_to_restore_checkpoint_file is not None:
+            #     assert tf.train.checkpoint_exists(path_to_restore_checkpoint_file), \
+            #         '%s not found' % path_to_restore_checkpoint_file
+            #     saver.restore(sess, path_to_restore_checkpoint_file)
+            #     print('Model restored from file: %s' % path_to_restore_checkpoint_file)
 
             print('Start training')
             patience = initial_patience
@@ -80,6 +86,8 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
                 start_time = time.time()
                 _, _, loss_val, summary_val, global_step_val, learning_rate_val = sess.run([train_op, defender_op, loss, summary, global_step, learning_rate])
                 duration += time.time() - start_time
+
+                # print("image: {} - {}".format(image_batch_val.min(), image_batch_val.max()))
 
                 if global_step_val % num_steps_to_show_loss == 0:
                     examples_per_sec = batch_size * num_steps_to_show_loss / duration
@@ -93,20 +101,22 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
                 summary_writer.add_summary(summary_val, global_step=global_step_val)
 
                 print('=> Evaluating on validation dataset...')
-                path_to_latest_checkpoint_file = saver.save(sess, os.path.join(path_to_train_log_dir, 'latest.ckpt'))
+                path_to_latest_checkpoint_file = saver.save(sess, os.path.join(path_to_train_log_dir,'model_defender.ckpt'))
+                path_to_latest_model_checkpoint_file = model_saver.save(sess, os.path.join(path_to_train_log_dir, 'model.ckpt'))
+                path_to_latest_defender_checkpoint_file = defender_saver.save(sess, os.path.join(path_to_train_log_dir, 'defender.ckpt'))
                 accuracy = evaluator.evaluate(path_to_latest_checkpoint_file, path_to_val_tfrecords_file,
                                               num_val_examples,
                                               global_step_val)
                 print('==> accuracy = %f, best accuracy %f' % (accuracy, best_accuracy))
 
-                if accuracy > best_accuracy:
-                    path_to_checkpoint_file = saver.save(sess, os.path.join(path_to_train_log_dir, 'model.ckpt'),
-                                                         global_step=global_step_val)
-                    print('=> Model saved to file: %s' % path_to_checkpoint_file)
-                    patience = initial_patience
-                    best_accuracy = accuracy
-                else:
-                    patience -= 1
+                # if accuracy > best_accuracy:
+                #     path_to_checkpoint_file = saver.save(sess, os.path.join(path_to_train_log_dir, 'model.ckpt'),
+                #                                          global_step=global_step_val)
+                #     print('=> Model saved to file: %s' % path_to_checkpoint_file)
+                #     patience = initial_patience
+                #     best_accuracy = accuracy
+                # else:
+                #     patience -= 1
 
                 print('=> patience = %d' % patience)
                 if patience == 0:
