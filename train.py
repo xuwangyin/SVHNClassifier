@@ -40,7 +40,7 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
         recovered_ssim = tf.reduce_mean(tf.image.ssim(tf.image.rgb_to_grayscale(image_batch), tf.image.rgb_to_grayscale(recovered), max_val=2))
         defender_loss = -recovered_ssim
         model_loss = Model.loss(length_logtis, digits_logits, length_batch, digits_batch)
-        loss = model_loss + FLAGS.recover_ssim_weight * recovered_ssim
+        loss = model_loss + tf.abs(FLAGS.recover_ssim_weight * recovered_ssim)
 
         global_step = tf.Variable(0, name='global_step', trainable=False)
         learning_rate = tf.train.exponential_decay(training_options['learning_rate'], global_step=global_step,
