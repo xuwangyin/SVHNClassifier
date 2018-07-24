@@ -3,11 +3,11 @@ import tensorflow as tf
 class Reconstructor(object):
     @staticmethod
     def recover_hidden(hidden_out, is_training, defend_layer='hidden4'):
-        assert defend_layer in ['hidden4', 'hidden10']
+        assert defend_layer in ['hidden4', 'hidden8']
         if defend_layer == 'hidden4':
             return Reconstructor.recover_hidden4(hidden_out, is_training)
-        if defend_layer == 'hidden10':
-            return Reconstructor.recover_hidden10(hidden_out, is_training)
+        if defend_layer == 'hidden8':
+            return Reconstructor.recover_hidden8(hidden_out, is_training)
 
     @staticmethod
     def recover_hidden4(hidden_out, is_training):
@@ -36,17 +36,17 @@ class Reconstructor(object):
             return recovered
 
     @staticmethod
-    def recover_hidden10(hidden_out, is_training):
-        with tf.variable_scope('recover_hidden10'):
-            # hidden 10 reverse
-            r_dense = tf.layers.dense(hidden_out, units=3072, activation=tf.nn.relu)
-            # hidden 9 reverse
-            r_dense = tf.layers.dense(r_dense, units=4*4*192, activation=tf.nn.relu)
-
-            r_flatten = tf.reshape(r_dense, [-1, 4, 4, 192])
+    def recover_hidden8(hidden_out, is_training):
+        with tf.variable_scope('recover_hidden8'):
+            # # hidden 10 reverse
+            # r_dense = tf.layers.dense(hidden_out, units=3072, activation=tf.nn.relu)
+            # # hidden 9 reverse
+            # r_dense = tf.layers.dense(r_dense, units=4*4*192, activation=tf.nn.relu)
+            #
+            # r_flatten = tf.reshape(r_dense, [-1, 4, 4, 192])
 
             # reverse hidden8
-            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_flatten)
+            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(1, 1), padding='same')(hidden_out)
             r_relu = tf.nn.relu(r_pool)
             r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=192, kernel_size=(5, 5), padding='same')(r_norm)
@@ -96,7 +96,7 @@ class Model(object):
 
     @staticmethod
     def inference(x, drop_rate, is_training, defend_layer='hidden4'):
-        assert defend_layer in ['hidden4', 'hidden10']
+        assert defend_layer in ['hidden4', 'hidden8']
         with tf.variable_scope('hidden1'):
             conv = tf.layers.conv2d(x, filters=48, kernel_size=[5, 5], padding='same')
             norm = tf.layers.batch_normalization(conv)
@@ -198,8 +198,8 @@ class Model(object):
         length_logits, digits_logits = length, tf.stack([digit1, digit2, digit3, digit4, digit5], axis=1)
         if defend_layer == 'hidden4':
             return length_logits, digits_logits, hidden4
-        if defend_layer == 'hidden10':
-            return length_logits, digits_logits, hidden10
+        if defend_layer == 'hidden8':
+            return length_logits, digits_logits, hidden8
 
     @staticmethod
     def loss(length_logits, digits_logits, length_labels, digits_labels):
