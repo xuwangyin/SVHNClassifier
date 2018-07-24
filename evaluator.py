@@ -1,6 +1,6 @@
 import tensorflow as tf
 from donkey import Donkey
-from model import Model, Reconstructor
+from model_nonorm import Model, Reconstructor
 
 
 class Evaluator(object):
