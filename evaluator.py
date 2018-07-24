@@ -7,7 +7,7 @@ class Evaluator(object):
     def __init__(self, path_to_eval_log_dir):
         self.summary_writer = tf.summary.FileWriter(path_to_eval_log_dir)
 
-    def evaluate(self, path_to_checkpoint, path_to_tfrecords_file, num_examples, global_step):
+    def evaluate(self, path_to_checkpoint, path_to_tfrecords_file, num_examples, global_step, defend_layer):
         batch_size = 128
         num_batches = num_examples // batch_size
         needs_include_length = False
@@ -18,12 +18,10 @@ class Evaluator(object):
                                                                          batch_size=batch_size,
                                                                          shuffled=False)
             with tf.variable_scope('model'):
-                length_logits, digits_logits, hidden_out = Model.inference(image_batch, drop_rate=0.0)
+                length_logits, digits_logits, hidden_out = Model.inference(image_batch, drop_rate=0.0, is_training=False, defend_layer=defend_layer)
             with tf.variable_scope('defender'):
-                recovered = Reconstructor.recover_hidden(hidden_out)
-                recovered = tf.image.resize_images(recovered, size=(54, 54))
-            recovered_ssim = tf.reduce_mean(tf.image.ssim(tf.image.rgb_to_grayscale(image_batch), tf.image.rgb_to_grayscale(recovered),max_val=2))
-            defender_loss = -recovered_ssim
+                recovered = Reconstructor.recover_hidden(hidden_out, is_training=False, defend_layer=defend_layer)
+            ssim = tf.reduce_mean(tf.abs(tf.image.ssim(image_batch, recovered, max_val=2)))
             length_predictions = tf.argmax(length_logits, axis=1)
             digits_predictions = tf.argmax(digits_logits, axis=2)
 
@@ -42,10 +40,9 @@ class Evaluator(object):
                 predictions=predictions_string
             )
 
-            tf.summary.image('image', image_batch)
-            tf.summary.image('recovered_image', recovered)
-            tf.summary.scalar('recovered_ssim', recovered_ssim)
-            tf.summary.scalar('defender_loss', defender_loss)
+            tf.summary.image('image', image_batch, max_outputs=20)
+            tf.summary.image('recovered', recovered, max_outputs=20)
+            tf.summary.scalar('ssim', ssim)
             tf.summary.scalar('accuracy', accuracy)
             tf.summary.histogram('variables',
                                  tf.concat([tf.reshape(var, [-1]) for var in tf.trainable_variables()], axis=0))

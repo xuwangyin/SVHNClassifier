@@ -15,22 +15,22 @@ class Reconstructor(object):
             # recover from hidden 4
             r_pool = tf.layers.Conv2DTranspose(filters=160, kernel_size=(2, 2), strides=(1, 1), padding='same')(hidden_out)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=128, kernel_size=(5, 5), padding='same')(r_norm)
 
             r_pool = tf.layers.Conv2DTranspose(filters=128, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=64, kernel_size=(5, 5), padding='same')(r_norm)
 
             r_pool = tf.layers.Conv2DTranspose(filters=64, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_conv)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=48, kernel_size=(5, 5), padding='same')(r_norm)
 
             r_pool = tf.layers.Conv2DTranspose(filters=48, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=3, kernel_size=(5, 5), padding='same')(r_norm)
             recovered = tf.image.resize_images(r_conv, size=(54, 54))
             return recovered
@@ -48,46 +48,46 @@ class Reconstructor(object):
             # reverse hidden8
             r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_flatten)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=192, kernel_size=(5, 5), padding='same')(r_norm)
 
             # reverse hidden7
-            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv, training=is_training)
+            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=192, kernel_size=(5, 5), padding='same')(r_norm)
 
             # reverse hidden6
-            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_conv, training=is_training)
+            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_conv)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=192, kernel_size=(5, 5), padding='same')(r_norm)
 
             # reverse hidden5
-            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv, training=is_training)
+            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=160, kernel_size=(5, 5), padding='same')(r_norm)
 
             # recover from hidden 4
-            r_pool = tf.layers.Conv2DTranspose(filters=160, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_conv, training=is_training)
+            r_pool = tf.layers.Conv2DTranspose(filters=160, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_conv)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=128, kernel_size=(5, 5), padding='same')(r_norm)
 
-            r_pool = tf.layers.Conv2DTranspose(filters=128, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv, training=is_training)
+            r_pool = tf.layers.Conv2DTranspose(filters=128, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=64, kernel_size=(5, 5), padding='same')(r_norm)
 
-            r_pool = tf.layers.Conv2DTranspose(filters=64, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_conv, training=is_training)
+            r_pool = tf.layers.Conv2DTranspose(filters=64, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_conv)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=48, kernel_size=(5, 5), padding='same')(r_norm)
 
-            r_pool = tf.layers.Conv2DTranspose(filters=48, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv, training=is_training)
+            r_pool = tf.layers.Conv2DTranspose(filters=48, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
             r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu, training=is_training)
+            r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=3, kernel_size=(5, 5), padding='same')(r_norm)
             recovered = tf.image.resize_images(r_conv, size=(54, 54))
             return recovered
@@ -99,7 +99,7 @@ class Model(object):
         assert defend_layer in ['hidden4', 'hidden10']
         with tf.variable_scope('hidden1'):
             conv = tf.layers.conv2d(x, filters=48, kernel_size=[5, 5], padding='same')
-            norm = tf.layers.batch_normalization(conv, training=is_training)
+            norm = tf.layers.batch_normalization(conv)
             activation = tf.nn.relu(norm)
             pool = tf.layers.max_pooling2d(activation, pool_size=[2, 2], strides=2, padding='same')
             dropout = tf.layers.dropout(pool, rate=drop_rate)
@@ -107,7 +107,7 @@ class Model(object):
 
         with tf.variable_scope('hidden2'):
             conv = tf.layers.conv2d(hidden1, filters=64, kernel_size=[5, 5], padding='same')
-            norm = tf.layers.batch_normalization(conv, training=is_training)
+            norm = tf.layers.batch_normalization(conv)
             activation = tf.nn.relu(norm)
             pool = tf.layers.max_pooling2d(activation, pool_size=[2, 2], strides=1, padding='same')
             dropout = tf.layers.dropout(pool, rate=drop_rate)
@@ -115,7 +115,7 @@ class Model(object):
 
         with tf.variable_scope('hidden3'):
             conv = tf.layers.conv2d(hidden2, filters=128, kernel_size=[5, 5], padding='same')
-            norm = tf.layers.batch_normalization(conv, training=is_training)
+            norm = tf.layers.batch_normalization(conv)
             activation = tf.nn.relu(norm)
             pool = tf.layers.max_pooling2d(activation, pool_size=[2, 2], strides=2, padding='same')
             dropout = tf.layers.dropout(pool, rate=drop_rate)
@@ -123,7 +123,7 @@ class Model(object):
 
         with tf.variable_scope('hidden4'):
             conv = tf.layers.conv2d(hidden3, filters=160, kernel_size=[5, 5], padding='same')
-            norm = tf.layers.batch_normalization(conv, training=is_training)
+            norm = tf.layers.batch_normalization(conv)
             activation = tf.nn.relu(norm)
             pool = tf.layers.max_pooling2d(activation, pool_size=[2, 2], strides=1, padding='same')
             dropout = tf.layers.dropout(pool, rate=drop_rate)
@@ -131,7 +131,7 @@ class Model(object):
 
         with tf.variable_scope('hidden5'):
             conv = tf.layers.conv2d(hidden4, filters=192, kernel_size=[5, 5], padding='same')
-            norm = tf.layers.batch_normalization(conv, training=is_training)
+            norm = tf.layers.batch_normalization(conv)
             activation = tf.nn.relu(norm)
             pool = tf.layers.max_pooling2d(activation, pool_size=[2, 2], strides=2, padding='same')
             dropout = tf.layers.dropout(pool, rate=drop_rate)
@@ -139,7 +139,7 @@ class Model(object):
 
         with tf.variable_scope('hidden6'):
             conv = tf.layers.conv2d(hidden5, filters=192, kernel_size=[5, 5], padding='same')
-            norm = tf.layers.batch_normalization(conv, training=is_training)
+            norm = tf.layers.batch_normalization(conv)
             activation = tf.nn.relu(norm)
             pool = tf.layers.max_pooling2d(activation, pool_size=[2, 2], strides=1, padding='same')
             dropout = tf.layers.dropout(pool, rate=drop_rate)
@@ -147,7 +147,7 @@ class Model(object):
 
         with tf.variable_scope('hidden7'):
             conv = tf.layers.conv2d(hidden6, filters=192, kernel_size=[5, 5], padding='same')
-            norm = tf.layers.batch_normalization(conv, training=is_training)
+            norm = tf.layers.batch_normalization(conv)
             activation = tf.nn.relu(norm)
             pool = tf.layers.max_pooling2d(activation, pool_size=[2, 2], strides=2, padding='same')
             dropout = tf.layers.dropout(pool, rate=drop_rate)
@@ -155,7 +155,7 @@ class Model(object):
 
         with tf.variable_scope('hidden8'):
             conv = tf.layers.conv2d(hidden7, filters=192, kernel_size=[5, 5], padding='same')
-            norm = tf.layers.batch_normalization(conv, training=is_training)
+            norm = tf.layers.batch_normalization(conv)
             activation = tf.nn.relu(norm)
             pool = tf.layers.max_pooling2d(activation, pool_size=[2, 2], strides=1, padding='same')
             dropout = tf.layers.dropout(pool, rate=drop_rate)
