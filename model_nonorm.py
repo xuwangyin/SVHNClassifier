@@ -3,9 +3,11 @@ import tensorflow as tf
 class Reconstructor(object):
     @staticmethod
     def recover_hidden(hidden_out, is_training, defend_layer='hidden4'):
-        assert defend_layer in ['hidden4', 'hidden8']
+        assert defend_layer in ['hidden4', 'hidden6', 'hidden8']
         if defend_layer == 'hidden4':
             return Reconstructor.recover_hidden4(hidden_out, is_training)
+        if defend_layer == 'hidden6':
+            return Reconstructor.recover_hidden6(hidden_out, is_training)
         if defend_layer == 'hidden8':
             return Reconstructor.recover_hidden8(hidden_out, is_training)
 
@@ -36,6 +38,23 @@ class Reconstructor(object):
             return recovered
 
     @staticmethod
+    def recover_hidden6(hidden_out, is_training):
+        with tf.variable_scope('recover_hidden6'):
+            # reverse hidden6
+            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(1, 1), padding='same')(hidden_out)
+            r_relu = tf.nn.relu(r_pool)
+            r_norm = tf.layers.batch_normalization(r_relu)
+            r_conv = tf.layers.Conv2DTranspose(filters=192, kernel_size=(5, 5), padding='same')(r_norm)
+
+            # reverse hidden5
+            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
+            r_relu = tf.nn.relu(r_pool)
+            r_norm = tf.layers.batch_normalization(r_relu)
+            r_conv = tf.layers.Conv2DTranspose(filters=160, kernel_size=(5, 5), padding='same')(r_norm)
+
+            return Reconstructor.recover_hidden4(r_conv, is_training)
+
+    @staticmethod
     def recover_hidden8(hidden_out, is_training):
         with tf.variable_scope('recover_hidden8'):
             # # hidden 10 reverse
@@ -57,46 +76,13 @@ class Reconstructor(object):
             r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=192, kernel_size=(5, 5), padding='same')(r_norm)
 
-            # reverse hidden6
-            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_conv)
-            r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu)
-            r_conv = tf.layers.Conv2DTranspose(filters=192, kernel_size=(5, 5), padding='same')(r_norm)
-
-            # reverse hidden5
-            r_pool = tf.layers.Conv2DTranspose(filters=192, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
-            r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu)
-            r_conv = tf.layers.Conv2DTranspose(filters=160, kernel_size=(5, 5), padding='same')(r_norm)
-
-            # recover from hidden 4
-            r_pool = tf.layers.Conv2DTranspose(filters=160, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_conv)
-            r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu)
-            r_conv = tf.layers.Conv2DTranspose(filters=128, kernel_size=(5, 5), padding='same')(r_norm)
-
-            r_pool = tf.layers.Conv2DTranspose(filters=128, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
-            r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu)
-            r_conv = tf.layers.Conv2DTranspose(filters=64, kernel_size=(5, 5), padding='same')(r_norm)
-
-            r_pool = tf.layers.Conv2DTranspose(filters=64, kernel_size=(2, 2), strides=(1, 1), padding='same')(r_conv)
-            r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu)
-            r_conv = tf.layers.Conv2DTranspose(filters=48, kernel_size=(5, 5), padding='same')(r_norm)
-
-            r_pool = tf.layers.Conv2DTranspose(filters=48, kernel_size=(2, 2), strides=(2, 2), padding='same')(r_conv)
-            r_relu = tf.nn.relu(r_pool)
-            r_norm = tf.layers.batch_normalization(r_relu)
-            r_conv = tf.layers.Conv2DTranspose(filters=3, kernel_size=(5, 5), padding='same')(r_norm)
-            recovered = tf.image.resize_images(r_conv, size=(54, 54))
-            return recovered
+            return Reconstructor.recover_hidden6(r_conv)
 
 class Model(object):
 
     @staticmethod
     def inference(x, drop_rate, is_training, defend_layer='hidden4'):
-        assert defend_layer in ['hidden4', 'hidden8']
+        assert defend_layer in ['hidden4', 'hidden6', 'hidden8']
         with tf.variable_scope('hidden1'):
             conv = tf.layers.conv2d(x, filters=48, kernel_size=[5, 5], padding='same')
             norm = tf.layers.batch_normalization(conv)
@@ -198,6 +184,8 @@ class Model(object):
         length_logits, digits_logits = length, tf.stack([digit1, digit2, digit3, digit4, digit5], axis=1)
         if defend_layer == 'hidden4':
             return length_logits, digits_logits, hidden4
+        if defend_layer == 'hidden6':
+            return length_logits, digits_logits, hidden6
         if defend_layer == 'hidden8':
             return length_logits, digits_logits, hidden8
 
