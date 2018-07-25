@@ -5,7 +5,7 @@ import tensorflow as tf
 from meta import Meta
 from donkey import Donkey
 # from model import Model, Reconstructor
-from model_nonorm import Model, Reconstructor
+from model_nonorm import Model, Attacker
 from evaluator import Evaluator
 
 tf.app.flags.DEFINE_string('data_dir', './data', 'Directory to read TFRecords files')
@@ -19,6 +19,7 @@ tf.app.flags.DEFINE_integer('decay_steps', 10000, 'Default 10000')
 tf.app.flags.DEFINE_float('decay_rate', 0.9, 'Default 0.9')
 tf.app.flags.DEFINE_float('ssim_weight', 1.0, 'Default 1.0')
 tf.app.flags.DEFINE_string('defend_layer', 'hidden4', 'Default hidden4')
+tf.app.flags.DEFINE_string('attacker_type', 'deconv', 'deconv')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -37,7 +38,7 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
         with tf.variable_scope('model'):
             length_logtis, digits_logits, hidden_out = Model.inference(image_batch, drop_rate=0.2, is_training=True, defend_layer=FLAGS.defend_layer)
         with tf.variable_scope('defender'):
-            recovered = Reconstructor.recover_hidden(hidden_out, True, FLAGS.defend_layer)
+            recovered = Attacker.recover_hidden(FLAGS.attacker_type, hidden_out, True, FLAGS.defend_layer)
         ssim = tf.reduce_mean(tf.abs(tf.image.ssim(image_batch, recovered, max_val=2)))
         model_loss = Model.loss(length_logtis, digits_logits, length_batch, digits_batch)
         loss = model_loss + FLAGS.ssim_weight * ssim
@@ -110,7 +111,8 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
                 accuracy = evaluator.evaluate(path_to_latest_checkpoint_file, path_to_val_tfrecords_file,
                                               num_val_examples,
                                               global_step_val,
-                                              FLAGS.defend_layer)
+                                              FLAGS.defend_layer,
+                                              FLAGS.attacker_type)
                 print('==> accuracy = %f, best accuracy %f' % (accuracy, best_accuracy))
 
                 if accuracy > best_accuracy:

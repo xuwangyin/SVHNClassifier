@@ -1,14 +1,14 @@
 import tensorflow as tf
 from donkey import Donkey
-from model_nonorm import Model, Reconstructor
+from model_nonorm import Model, Attacker
 
 
 class Evaluator(object):
     def __init__(self, path_to_eval_log_dir):
         self.summary_writer = tf.summary.FileWriter(path_to_eval_log_dir)
 
-    def evaluate(self, path_to_checkpoint, path_to_tfrecords_file, num_examples, global_step, defend_layer):
-        batch_size = 128
+    def evaluate(self, path_to_checkpoint, path_to_tfrecords_file, num_examples, global_step, defend_layer, attacker_type):
+        batch_size = 32
         num_batches = num_examples // batch_size
         needs_include_length = False
 
@@ -20,7 +20,7 @@ class Evaluator(object):
             with tf.variable_scope('model'):
                 length_logits, digits_logits, hidden_out = Model.inference(image_batch, drop_rate=0.0, is_training=False, defend_layer=defend_layer)
             with tf.variable_scope('defender'):
-                recovered = Reconstructor.recover_hidden(hidden_out, is_training=False, defend_layer=defend_layer)
+                recovered = Attacker.recover_hidden(attacker_type, hidden_out, is_training=False, defend_layer=defend_layer)
             ssim = tf.reduce_mean(tf.abs(tf.image.ssim(image_batch, recovered, max_val=2)))
             length_predictions = tf.argmax(length_logits, axis=1)
             digits_predictions = tf.argmax(digits_logits, axis=2)

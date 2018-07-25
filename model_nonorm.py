@@ -1,15 +1,35 @@
 import tensorflow as tf
 
-class Reconstructor(object):
+class Attacker(object):
+    @staticmethod
+    def recover_hidden(attacker_type, hidden_out, is_training, defend_layer='hidden4'):
+        assert attacker_type in ['dense', 'deconv']
+        if attacker_type == 'dense':
+            return DenseAttacker.recover_hidden(hidden_out, is_training, defend_layer)
+        if attacker_type == 'deconv':
+            return DeconvAttacker.recover_hidden(hidden_out, is_training, defend_layer)
+
+class DenseAttacker(object):
+    @staticmethod
+    def recover_hidden(hidden_out, is_training, defend_layer='hidden4'):
+        with tf.variable_scope('dense_reconstructor'):
+            flatten = tf.reshape(hidden_out, [32, -1])
+            dense = tf.layers.dense(flatten, units=1024, activation=tf.nn.relu)
+            dense = tf.layers.dense(dense, units=54*54*3, activation=tf.nn.relu)
+            image = tf.reshape(dense, [-1, 54, 54, 3])
+            return image
+
+
+class DeconvAttacker(object):
     @staticmethod
     def recover_hidden(hidden_out, is_training, defend_layer='hidden4'):
         assert defend_layer in ['hidden4', 'hidden6', 'hidden8']
         if defend_layer == 'hidden4':
-            return Reconstructor.recover_hidden4(hidden_out, is_training)
+            return DeconvAttacker.recover_hidden4(hidden_out, is_training)
         if defend_layer == 'hidden6':
-            return Reconstructor.recover_hidden6(hidden_out, is_training)
+            return DeconvAttacker.recover_hidden6(hidden_out, is_training)
         if defend_layer == 'hidden8':
-            return Reconstructor.recover_hidden8(hidden_out, is_training)
+            return DeconvAttacker.recover_hidden8(hidden_out, is_training)
 
     @staticmethod
     def recover_hidden4(hidden_out, is_training):
@@ -52,7 +72,7 @@ class Reconstructor(object):
             r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=160, kernel_size=(5, 5), padding='same')(r_norm)
 
-            return Reconstructor.recover_hidden4(r_conv, is_training)
+            return DeconvAttacker.recover_hidden4(r_conv, is_training)
 
     @staticmethod
     def recover_hidden8(hidden_out, is_training):
@@ -76,7 +96,7 @@ class Reconstructor(object):
             r_norm = tf.layers.batch_normalization(r_relu)
             r_conv = tf.layers.Conv2DTranspose(filters=192, kernel_size=(5, 5), padding='same')(r_norm)
 
-            return Reconstructor.recover_hidden6(r_conv)
+            return DeconvAttacker.recover_hidden6(r_conv, is_training)
 
 class Model(object):
 
