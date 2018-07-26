@@ -36,7 +36,7 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
                                                                      batch_size=batch_size,
                                                                      shuffled=True)
         with tf.variable_scope('model'):
-            length_logtis, digits_logits, hidden_out = Model.inference(image_batch, drop_rate=0.2, is_training=True, defend_layer=FLAGS.defend_layer)
+            length_logtis, digits_logits, hidden_out = Model.inference(image_batch, drop_rate=0.0, is_training=True, defend_layer=FLAGS.defend_layer)
         with tf.variable_scope('defender'):
             recovered = Attacker.recover_hidden(FLAGS.attacker_type, hidden_out, True, FLAGS.defend_layer)
         ssim = tf.reduce_mean(tf.abs(tf.image.ssim(image_batch, recovered, max_val=2)))
