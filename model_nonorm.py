@@ -15,7 +15,7 @@ class DenseAttacker(object):
         with tf.variable_scope('dense_reconstructor'):
             flatten = tf.reshape(hidden_out, [32, -1])
             dense = tf.layers.dense(flatten, units=1024, activation=tf.nn.relu)
-            dense = tf.layers.dense(dense, units=54*54*3, activation=tf.nn.relu)
+            dense = tf.layers.dense(dense, units=54*54*3)
             image = tf.reshape(dense, [-1, 54, 54, 3])
             return image
 

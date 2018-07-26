@@ -15,6 +15,7 @@ tf.app.flags.DEFINE_integer('batch_size', 32, 'Default 32')
 tf.app.flags.DEFINE_float('learning_rate', 1e-2, 'Default 1e-2')
 tf.app.flags.DEFINE_integer('patience', 100, 'Default 100, set -1 to train infinitely')
 tf.app.flags.DEFINE_integer('decay_steps', 10000, 'Default 10000')
+tf.app.flags.DEFINE_integer('max_steps', 300000, 'Default 10000')
 tf.app.flags.DEFINE_float('decay_rate', 0.9, 'Default 0.9')
 tf.app.flags.DEFINE_float('ssim_weight', 1.0, 'Default 1.0')
 tf.app.flags.DEFINE_string('defend_layer', 'hidden4', 'Default hidden4')
@@ -121,6 +122,9 @@ def _train(path_to_train_tfrecords_file, num_train_examples, path_to_val_tfrecor
                 # if patience == 0:
                 #     break
 
+                if global_step_val > FLAGS.max_steps:
+                    break
+
             coord.request_stop()
             coord.join(threads)
             print('Finished')
@@ -131,6 +135,8 @@ def main(_):
     path_to_val_tfrecords_file = os.path.join(FLAGS.data_dir, 'val.tfrecords')
     path_to_tfrecords_meta_file = os.path.join(FLAGS.data_dir, 'meta.json')
     path_to_train_log_dir = FLAGS.train_logdir
+    path_to_train_log_dir = os.path.join(FLAGS.train_logdir, "ssim_{:.2f}-defend_{}-attacker_{}".format(FLAGS.ssim_weight, FLAGS.defend_layer, FLAGS.attacker_type))
+    print("log path: {}".format(path_to_train_log_dir))
     path_to_restore_model_checkpoint_file = FLAGS.restore_checkpoint
     training_options = {
         'batch_size': FLAGS.batch_size,
